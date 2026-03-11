@@ -1,0 +1,75 @@
+# Default values for ai-test.
+
+replicaCount: 2
+
+image:
+  repository: 10.2.2.40:5000/library/ai-rag
+  pullPolicy: Always
+  tag: "latest"
+
+imagePullSecrets:
+  - name: harbor-secret
+nameOverride: ""
+fullnameOverride: "ai-rag"
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+  hosts:
+    - host: "cafekec.shop"
+      paths:
+        - path: /api/ai(/|$)(.*)
+          pathType: ImplementationSpecific
+  tls: []
+
+resources: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: NotIn
+          values:
+          - k8s-workernode6
+
+env:
+  - name: OLLAMA_HOST_PRIMARY
+    value: "http://139.150.91.194:11435"
+  - name: OLLAMA_HOST_SECONDARY
+    value: "http://10.2.2.40:11434"
+  - name: DEFAULT_MODEL
+    value: "llama3.2:3b"
+  - name: KMA_API_URL
+    value: "http://kma-api:8080/weather/short"
+  - name: ENERGY_API_URL
+    value: "http://energy-api:8000/kpx/now"

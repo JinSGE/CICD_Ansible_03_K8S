@@ -1,0 +1,7 @@
+---
+- name: Configure Ingress VIP & LB (WN3/WN5 HA Pair)
+  hosts: ingress_vip
+  become: true
+  roles:
+    - generic_keepalived
+    - generic_haproxy

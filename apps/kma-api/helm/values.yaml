@@ -1,0 +1,127 @@
+# myapp에 대한 기본값입니다.
+# 이 파일은 YAML 형식입니다.
+# 템플릿으로 전달될 변수들을 여기서 선언합니다.
+
+replicaCount: 3
+
+namespaceOverride: "production"
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+image:
+  repository: 10.2.2.40:5000/library/kma-api
+  pullPolicy: Always
+  # 차트의 기본 appVersion 대신 사용할 이미지 태그를 덮어씁니다.
+  tag: "latest-1"
+
+imagePullSecrets:
+  - name: harbor-secret
+nameOverride: ""
+fullnameOverride: "kma-api"
+
+serviceAccount:
+  # 서비스 계정을 생성할지 여부를 지정합니다.
+  create: true
+  # 서비스 계정에 추가할 어노테이션(Annotations)입니다.
+  annotations: {}
+  # 사용할 서비스 계정의 이름입니다.
+  # 설정하지 않고 create가 true일 경우, fullname 템플릿을 사용하여 이름이 자동 생성됩니다.
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000 (볼륨 마운트 시 파일 소유 그룹 ID)
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL (모든 권한 제거)
+  # readOnlyRootFilesystem: true (루트 파일 시스템을 읽기 전용으로 설정)
+  # runAsNonRoot: true (루트 권한으로 실행 금지)
+  # runAsUser: 1000 (컨테이너를 실행할 사용자 ID)
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8000
+  nodePort: 
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations: 
+    nginx.ingress.kubernetes.io/rewrite-target: /weather/$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+  hosts:
+    # ✅ IP(10.2.2.101)로 직접 접속 가능하도록 host를 비워둡니다.
+    - host: ""
+      paths:
+        - path: /api/weather(/|$)(.*)
+          pathType: ImplementationSpecific
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: NotIn
+          values:
+          - k8s-workernode6
+
+env:
+  # ===== KMA =====
+  KMA_AUTHKEY: "MmNnsQppQqGjZ7EKaaKhgQ"
+  AIRKOREA_SERVICE_KEY: "93f2e3191276074224c438872e7cc3a95b6bcff3adbf538ceb8dba2938a233d5"
+  # AIRKOREA_SERVICE_KEY: "e7354f71712bb551aa973ec38c763141f796a7ae2129dee32e600105c11d4ad1"
+
+  # ===== Database (PostgreSQL) =====
+  DB_HOST: "10.2.2.254"
+  DB_PORT: "5432"
+  DB_NAME: "appdb"
+  DB_SCHEMA: "api"
+  DB_USER: "svc_api"
+  DB_PASSWORD: "CHANGE_ME"
+  DB_SSLMODE: "disable"
+
+  # ===== Redis (Cache) =====
+  REDIS_HOST: "redis-cache"
+  REDIS_PORT: "6379"
+  REDIS_PREFIX: "weather"
+  REDIS_TTL_ULTRA_SECONDS: "600"
+  REDIS_TTL_SHORT_SECONDS: "3600"
+  REDIS_PREFIX_DUST: "dust"
+  REDIS_TTL_DUST_SECONDS: "1800"
+
+  # ===== Timezone =====
+  TZ: "Asia/Seoul"
+
+livenessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 20
+
+readinessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
